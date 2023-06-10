@@ -1,8 +1,8 @@
 ---
 layout: post
-title: "Welcome to Jekyll!"
+title: "아키텍쳐"
 date: 2023-05-01 00:00:00 +0900
-categories: "클린 아키텍쳐"
+categories: "Clean Architecture"
 ---
 # post-sample
 > Hello!
