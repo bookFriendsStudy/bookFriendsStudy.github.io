@@ -1,8 +1,8 @@
 ---
 layout: post
 title: post-sample
-date: 2020-01-02 19:20:23 +0900
-category: sample
+date: 2022-12-01 00:00:00 +0900
+category: "가상 면접 사례로 배우는 대규모 시스템 기초"
 ---
 # post-sample
 > Hello!

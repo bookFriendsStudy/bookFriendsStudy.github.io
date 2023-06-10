@@ -1,0 +1,13 @@
+---
+layout: post
+title: post-sample
+date: 2022-09-01 00:00:00 +0900
+category: "Effective Java"
+---
+# post-sample
+> Hello!
+
+This is code
+```ruby
+print 'hello world'
+```
