@@ -1,8 +1,9 @@
 ---
 layout: post
-title: 16. 아키텍처란?
+title: 16. 독립성
 date: 2023-06-10 21:00:00 +0900
 categories: "Clean Architecture"
+author: hojunee
 ---
 # 16. 독립성
 
