@@ -10,8 +10,8 @@
 		<p class="author-info">
 			{% if page.author %}
 				{% assign author_info = site.data.author[author] %}
-				<img class="author-thumb" src="https://github.com/{{ author_name }}.png" alt="{{ author_info.display_name }}">
-				<span class="top-author-name">{{ author_info.display_name }}</span>
+				<img class="author-thumb" src="https://github.com/{{ page.author }}.png" alt="{{ author_info.display_name }}">
+				{{ author_info.display_name }}
 			{% endif %}
 		</p>
 	</header>
