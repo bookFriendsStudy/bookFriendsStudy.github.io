@@ -8,8 +8,11 @@
 			{{ page.date | date: date_format }}
 		</time>
 		<p class="author-info">
-			<img class="author-thumb" src="https://github.com/{{ author_name }}.png" alt="{{ author.display_name }}">
-			<span class="top-author-name">{{ author.display_name }}</span>
+			{% if page.author %}
+				{% assign author_info = site.data.author[author] %}
+				<img class="author-thumb" src="https://github.com/{{ author_name }}.png" alt="{{ author_info.display_name }}">
+				<span class="top-author-name">{{ author_info.display_name }}</span>
+			{% endif %}
 		</p>
 	</header>
 
