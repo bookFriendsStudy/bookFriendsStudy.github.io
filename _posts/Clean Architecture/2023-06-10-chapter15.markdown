@@ -2,7 +2,8 @@
 layout: post
 title: 15. 아키텍처란?
 date: 2023-06-10 21:00:00 +0900
-categories: "Clean Architecture"
+categories: 
+- Clean Architecture
 author: hojunee
 ---
 # 15. 아키텍처란?

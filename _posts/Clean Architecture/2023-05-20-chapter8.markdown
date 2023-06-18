@@ -2,7 +2,8 @@
 layout: post
 title: 8. Open-Closed Principle
 date: 2023-05-20 21:00:00 +0900
-categories: "Clean Architecture"
+categories: 
+- Clean Architecture
 author: hojunee
 ---
 # Ch 8. Open-Closed Principle
