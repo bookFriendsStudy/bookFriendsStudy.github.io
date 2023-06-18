@@ -9,7 +9,7 @@
 		</time>
 		<p class="author-info">
 			{% if page.author %}
-				{% assign author_info = site.data.author[author] %}
+				{% assign author_info = site.data.author[page.author] %}
 				<img class="author-thumb" src="https://github.com/{{ page.author }}.png" alt="{{ author_info.display_name }}">
 				{{ author_info.display_name }}
 			{% endif %}
