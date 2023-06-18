@@ -1,0 +1,240 @@
+---
+layout: post
+title: 10. State Pattern
+date: 2023-04-09 21:00:00 +0900
+categories: "Headfirst Design Pattern"
+author: hojunee
+---
+# 10. State Pattern
+
+## TL;DR
+
+- 내부 상태가 바뀜에 따라서 객체의 행동을 변화할 수 있는 패턴
+- How? → 객체 내부의 **상태**를 바꾼다!
+
+## Start from scratch
+
+- 뽑기 기계 제어용 프로그램을 어떻게 하면 만들 수 있을까?
+- 단순한 생각으로는 다음과 같이 시도해볼 수 있다:
+
+```java
+public class GumballMachine {
+ 
+	/* enum 스타일로 현재 뽑기기계의 상태를 관리 */
+	final static int SOLD_OUT = 0;
+	final static int NO_QUARTER = 1;
+	final static int HAS_QUARTER = 2;
+	final static int SOLD = 3;
+ 
+	int state = SOLD_OUT;
+	int count = 0;
+  
+	public GumballMachine(int count) {
+		this.count = count;
+		if (count > 0) {
+			state = NO_QUARTER;
+		}
+	}
+```
+
+- 그런데 이런 방식을 채용하는 경우 다음과 같이 코드가 verbose해지는 문제가 발생:
+
+```java
+	// method of GumballMachine
+
+	public void insertQuarter() {
+			if (state == HAS_QUARTER) {
+				System.out.println("You can't insert another quarter");
+			} else if (state == NO_QUARTER) {
+				state = HAS_QUARTER;
+				System.out.println("You inserted a quarter");
+			} else if (state == SOLD_OUT) {
+				System.out.println("You can't insert a quarter, the machine is sold out");
+			} else if (state == SOLD) {
+	        	System.out.println("Please wait, we're already giving you a gumball");
+			}
+		}
+```
+
+- 또한, 코드를 확장하는 것이 쉽지 않음.
+    - 만약에 새로운 기능이 추가된다면? (e.g. 10% 확률로 당첨)
+
+## Logic
+
+- **Context**
+    - 현재의 ConcreteState를 소유
+    - State와 연관된 일을 모두 ConcreteState 객체에 위임
+    
+    ```java
+    public class GumballMachine {
+     
+    	State soldOutState;
+    	State noQuarterState;
+    	State hasQuarterState;
+    	State soldState;
+     
+    	State state;
+    	int count = 0;
+     
+    	public GumballMachine(int numberGumballs) {
+    		soldOutState = new SoldOutState(this);
+    		noQuarterState = new NoQuarterState(this);
+    		hasQuarterState = new HasQuarterState(this);
+    		soldState = new SoldState(this);
+    
+    		this.count = numberGumballs;
+     		if (numberGumballs > 0) {
+    			state = noQuarterState;
+    		} else {
+    			state = soldOutState;
+    		}
+    	}
+    ```
+    
+    - 이렇게 만든 이후, 어떤 작업이 호출되면 `state` 에 위임
+    
+    ```java
+    public void insertQuarter() {
+    		state.insertQuarter();
+    	}
+     
+    	public void ejectQuarter() {
+    		state.ejectQuarter();
+    	}
+     
+    	public void turnCrank() {
+    		state.turnCrank();
+    		state.dispense();
+    	}
+    ```
+
+- **State**
+    - 상태별로 해야하는 일을 지정
+    - 모든 ConcreteState가 행동할 수 있어야함.
+    
+    ```
+    public interface State {
+     
+    	public void insertQuarter();
+    	public void ejectQuarter();
+    	public void turnCrank();
+    	public void dispense();
+    	
+    	public void refill();
+    }
+    ```
+
+- **ConcreteState**
+    - 특정 상태를 나타냄. 상태별로 해야하는 행동들을 구현
+    
+    ```java
+    public class NoQuarterState implements State {
+        GumballMachine gumballMachine;
+     
+        public NoQuarterState(GumballMachine gumballMachine) {
+            this.gumballMachine = gumballMachine;
+        }
+     
+    	public void insertQuarter() {
+    		System.out.println("You inserted a quarter");
+    		gumballMachine.setState(gumballMachine.getHasQuarterState());
+    	}
+     
+    	public void ejectQuarter() {
+    		System.out.println("You haven't inserted a quarter");
+    	}
+     
+    	public void turnCrank() {
+    		System.out.println("You turned, but there's no quarter");
+    	 }
+     
+    	public void dispense() {
+    		System.out.println("You need to pay first");
+    	} 
+    	
+    	public void refill() { }
+     
+    	public String toString() {
+    		return "waiting for quarter";
+    	}
+    }
+    ```
+    
+- Client
+    
+    ```java
+    public class GumballMachineTestDrive {
+    
+    	public static void main(String[] args) {
+    		GumballMachine gumballMachine = new GumballMachine(2);
+    
+    		System.out.println(gumballMachine);
+    
+    		gumballMachine.insertQuarter();
+    		gumballMachine.turnCrank();
+    
+    		System.out.println(gumballMachine);
+    	}
+    }
+    ```
+    
+
+### Pros: Adding New State
+
+- 만약 일정 확률로 당첨! 과 같은 기능을 추가한다면?
+- 상태를 도입하고, 이것의 메서드에 이 상태에서 적용해야 할 내용을 지정
+
+```java
+public class WinnerState implements State {
+  GumballMachine gumballMachine;
+ 
+  public WinnerState(GumballMachine gumballMachine) {
+        this.gumballMachine = gumballMachine;
+    }
+ 
+  // ... 
+
+	public void dispense() {
+		gumballMachine.releaseBall();
+		if (gumballMachine.getCount() == 0) {
+			gumballMachine.setState(gumballMachine.getSoldOutState());
+		} else {
+			gumballMachine.releaseBall();
+			System.out.println("YOU'RE A WINNER! You got two gumballs for your quarter");
+			if (gumballMachine.getCount() > 0) {
+				gumballMachine.setState(gumballMachine.getNoQuarterState());
+			} else {
+            	System.out.println("Oops, out of gumballs!");
+				gumballMachine.setState(gumballMachine.getSoldOutState());
+			}
+		}
+	}
+```
+
+## State vs Strategy
+
+- 두 패턴 모두 **구성**(compisition)이 중심이 된다는 공통점이 있다.
+
+### State
+
+- **상태**를 캡슐화
+- 해당 상태에서 객체가 수행해야 할 모든 행동을 구현하고 수행
+    - 이번 Chapter의 State
+
+### Strategy
+
+- 동일 계열의 알고리즘군을 정의하고, 각각의 **알고리즘**을 캡슐화
+- 해당 전략의 알고리즘만 구현하고 수행한다
+    - `FlyBehavior` or `QuackBehavior`
+
+## Insights ✨
+
+- 상태 or 상태에 따라서 동작이 달라지는 경우가 많다면 유리!
+    
+    → 상태가 적다면 굳이? (Trade-off!)
+    
+- Principles?
+    - **SRP**(Single Responsibility Principle)
+        - 특정 상태와 관련된 코드를 별도의 클래스로 구성(`SoldState` vs `WinnerState`)
+    - **OCP**(Open Close Principle)
+        - 기존 State 클래스나 Context를 변경하지 않고 새 State를 도입할 수 있음

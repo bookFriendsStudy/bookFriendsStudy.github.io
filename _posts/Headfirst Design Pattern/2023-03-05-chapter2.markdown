@@ -1,0 +1,231 @@
+---
+layout: post
+title: 2. Observer Pattern
+date: 2023-03-05 21:00:00 +0900
+categories: "Headfirst Design Pattern"
+author: hojunee
+---
+# 2. 옵저버 패턴
+
+## Goal
+
+- WeatherData 구현을 목표로 한다
+
+---
+
+## Naive Approach:
+
+```java
+public class WeatherData {
+
+	// ...
+
+	public void measurementsChanged() {
+		float temp = getTemperature();
+		float humidity = getHumidity();
+		float pressure = getPressure();
+
+		currentConditionsDisplay.update(temp, humidity, pressure);
+		statisticsDisplay.update(temp, humidity, pressure);
+		forecastDisplay.update(temp, humidity, pressure);
+	}
+}
+```
+
+### 문제점?
+
+- 구체적인 구현에 맞춰서 코딩 → 확장성이 부족 (다른 디스플레이 추가? 제거?)
+- 실행 중에 디스플레이가 동적으로 수정될 수 없음
+
+→ `update()` 부분이 바뀔 수 있는 부분으로서 캡슐화되어야함!
+
+## Observer Pattern
+
+- 한 객체의 상태가 바뀌면 그 객체에 의존하는 다른 객체에서 연락이 가고 자동으로 내용이 갱신되는 방식
+- **일대다 의존성**을 정의
+
+### Implementation at a glance
+
+---
+
+## 느슨한 결합 (Loose Coupling)
+
+객체들이 상호작용할 수 있지만, 서로를 잘 모르는 관계
+
+### 옵저버 패턴에서의 느슨한 결합
+
+- 주제는 옵저버가 `Observer`를 구현한다는 사실만 알고 있음
+    - 옵저버의 구상 클래스, 옵저버의 역할 등은 관심이 없다
+- 옵저버는 언제든지 새로 추가할 수 있음
+    - 주제 입장에서는 Observer 인터페이스를 구현하는 객체의 목록에만 의존
+    - 옵저버의 추가와 삭제가 실행에 영향을 미치지 않음
+- 새로운 형식의 옵저버를 추가할 때도 주제를 변경할 필요가 전혀 없음
+
+느슨한 결합의 장점으로…
+
+- 주제와 옵저버는 서로 독립적으로 재사용할 수 있음
+- 주제나 옵저버가 달라져도 서로에게 영향을 미치지 않음
+
+---
+
+## 기상 스테이션 구현하기
+
+### Subject 인터페이스
+
+```java
+public interface Subject {
+  /* 옵저버를 등록하고 제거하는 역할 */
+	public void registerObserver(Observer o);
+	public void removeObserver(Observer o);
+
+  // 내용 갱신 이후 모든 옵저버에게 변경 내용을 알리고자 호출하는 메서드
+	public void notifyObservers();
+}
+```
+
+### Observer 인터페이스
+
+- 모든 옵저버 클래스에서 구현해야 함 (→ `update()` 메서드!)
+
+```java
+public interface Observer {
+	public void update(float temp, float humidity, float pressure);
+}
+```
+
+### Display 인터페이스
+
+```java
+public interface DisplayElement {
+  /* 디스플레이를 출력할 때 다음 메서드를 호출 */
+	public void display();
+}
+```
+
+## Subject 인터페이스로부터 구현하기
+
+- WeatherData 클래스 구현
+
+```java
+import java.util.*;
+
+public class WeatherData implements Subject {
+  /* Observer 객체들을 저장하는 ArrayList */
+	private List<Observer> observers;
+	private float temperature;
+	private float humidity;
+	private float pressure;
+	
+	/* 생성자 -> ArrayList 초기화 */
+	public WeatherData() {
+		observers = new ArrayList<Observer>();
+	}
+	
+	/* Observer 추가 */
+	public void registerObserver(Observer o) {
+		observers.add(o);
+	}
+	
+  /* Observer 삭제 */
+	public void removeObserver(Observer o) {
+		observers.remove(o);
+	}
+	
+  /* Observer 정보 Update */
+	public void notifyObservers() {
+		for (Observer observer : observers) {
+			observer.update(temperature, humidity, pressure);
+		}
+	}
+	
+  /* Observer 추가 */
+	public void measurementsChanged() {
+		notifyObservers();
+	}
+	
+	public void setMeasurements(float temperature, float humidity, float pressure) {
+		this.temperature = temperature;
+		this.humidity = humidity;
+		this.pressure = pressure;
+		measurementsChanged();
+	}
+
+	public float getTemperature() {
+		return temperature;
+	}
+	
+	public float getHumidity() {
+		return humidity;
+	}
+	
+	public float getPressure() {
+		return pressure;
+	}
+
+}
+```
+
+## 디스플레이 요소 구현하기
+
+- CurrentConditionsDisplay 구현
+
+```java
+public class CurrentConditionsDisplay implements Observer, DisplayElement {
+	private float temperature;
+	private float humidity;
+	private WeatherData weatherData;
+	
+	public CurrentConditionsDisplay(WeatherData weatherData) {
+		this.weatherData = weatherData;
+		weatherData.registerObserver(this);
+	}
+	
+	public void update(float temperature, float humidity, float pressure) {
+		this.temperature = temperature;
+		this.humidity = humidity;
+		display();
+	}
+	
+	public void display() {
+		System.out.println("Current conditions: " + temperature 
+			+ "F degrees and " + humidity + "% humidity");
+	}
+}
+```
+
+## From Push To Pull
+
+- 옵저버가 필요할 때마다 주제로부터 데이터를 당겨오게 만드는 방법
+
+```java
+import java.util.*;
+
+public class WeatherData implements Subject {
+	...
+  /* Observer의 `update()` 인자를 제거 */
+	public void notifyObservers() {
+		for (Observer observer : observers) {
+			observer.update();
+		}
+	}
+	...
+}
+
+/* Observer 인터페이스 */
+public interface Observer {
+	public void update();
+}
+
+/* Observer의 구현체 */
+public void update() {
+	this.temperature = weatherData.getTemperature();
+	this.humidity = weatherData.getHumidity();
+	display();
+}
+```
+
+## TL;DR with Design Principals
+
+- 애플리케이션에서 달라지는 부분을 찾아내고 달라지지 않는 부분과 분리한다
+- 구현보다는 인터페이스에 맞춰서 프로그래밍한다
+- 상속보다는 구성을 활용한다

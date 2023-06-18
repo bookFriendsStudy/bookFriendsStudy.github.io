@@ -1,0 +1,302 @@
+---
+layout: post
+title: 6. Command Pattern
+date: 2023-03-26 21:00:00 +0900
+categories: "Headfirst Design Pattern"
+author: hojunee
+---
+# 6. Command Pattern
+
+## TL;DR
+
+- 요청을 독립적인 **객체**로 캡슐화하는 디자인 패턴
+
+### Start from scratch
+
+- 리모콘 클래스를 만들기 위해서는 어떻게 해야할까?
+- 사용해야하는 클래스가 많으면서도, **공통적인 인터페이스가 보이지 않음**
+- 이러한 클래스가 추가되거나 삭제될 가능성을 열어두어야함
+
+### Logic
+
+- **Sender**(a.k.a Invoker)
+    - 요청을 보내는 객체
+    - 요청을 캡슐화한 Command 객체를 생성하고, 이를 실행하는 execute() 메서드를 호출
+    
+    ```java
+    public class SimpleRemoteControl {
+    	Command slot;
+     
+    	public SimpleRemoteControl() {}
+     
+    	public void setCommand(Command command) {
+    		slot = command;
+    	}
+     
+    	public void buttonWasPressed() {
+    		slot.execute();
+    	}
+    }
+    ```
+
+- *Command* *`<<Inteface>>`*
+    - `execute()` - 실행하고자 하는 단순 메서드
+    
+    ```java
+    public interface Command {
+    	public void execute();
+    }
+    ```
+    
+    이를 구현하면? 👇🏼
+    
+    ```
+    public class LightOnCommand implements Command {
+    	Light light; /* TODO: Implement this! */
+      
+      // Point out the target light by init
+    	public LightOnCommand(Light light) {
+    		this.light = light;
+    	}
+     
+    	public void execute() {
+    		light.on();
+    	}
+    }
+    ```
+    
+
+- **Receiver**
+    - 요청을 받아들이고, 이에 대한 동작을 수행하는 객체
+    
+    ```java
+    public class Light {
+    
+    	public Light() {
+    	}
+    
+    	public void on() {
+    		System.out.println("Light is on");
+    	}
+    
+    	public void off() {
+    		System.out.println("Light is off");
+    	}
+    }
+    ```
+    
+
+- **Client**
+    
+    ```java
+    // Work as Client
+    public class RemoteControlTest {
+    	public static void main(String[] args) {
+    		// `remote` works as Invoker
+    		SimpleRemoteControl remote = new SimpleRemoteControl();
+    
+    		// Initialize `light` Receiver
+    		Light light = new Light();
+    
+    		LightOnCommand lightOn = new LightOnCommand(light);
+     
+    		// Command -> Invoker
+    		remote.setCommand(lightOn);
+    
+    		// Event Triggered!
+    		remote.buttonWasPressed();
+        }
+    }
+    ```
+    
+
+### Implementation I
+
+- 리모콘을 구현하면?
+
+```java
+public class RemoteControl {
+	Command[] onCommands;
+	Command[] offCommands;
+ 
+	public RemoteControl() {
+		/* 버튼이 7개이므로 on과 off에 7개를 구현 */
+		onCommands = new Command[7];
+		offCommands = new Command[7];
+ 
+		/* 리빙포인트: NoCommand를 이용한 null guard */
+		Command noCommand = new NoCommand();
+		for (int i = 0; i < 7; i++) {
+			onCommands[i] = noCommand;
+			offCommands[i] = noCommand;
+		}
+	}
+  
+	/* 특정 슬롯에 Command 할당 */
+	public void setCommand(int slot, Command onCommand, Command offCommand) {
+		onCommands[slot] = onCommand;
+		offCommands[slot] = offCommand;
+	}
+
+	/* 각 Button Event가 발생하면 `execute()` 실행 */
+	public void onButtonWasPushed(int slot) {
+		onCommands[slot].execute();
+	}
+ 
+	public void offButtonWasPushed(int slot) {
+		offCommands[slot].execute();
+	}
+}
+```
+
+cf) `NoCommand`?
+
+```java
+public class NoCommand implements Command {
+	public void execute() { }
+}
+```
+
+---
+
+### Client I
+
+- 두개의 버튼으로 livingRoom과 kitchen의 전구를 관리한다면?
+
+```java
+public class RemoteLoader {
+ 
+	public static void main(String[] args) {
+		RemoteControl remoteControl = new RemoteControl();
+ 
+		Light livingRoomLight = new Light("Living Room");
+		Light kitchenLight = new Light("Kitchen");
+  
+		LightOnCommand livingRoomLightOn = 
+				new LightOnCommand(livingRoomLight);
+		LightOffCommand livingRoomLightOff = 
+				new LightOffCommand(livingRoomLight);
+		LightOnCommand kitchenLightOn = 
+				new LightOnCommand(kitchenLight);
+		LightOffCommand kitchenLightOff = 
+				new LightOffCommand(kitchenLight);
+ 
+		remoteControl.setCommand(0, livingRoomLightOn, livingRoomLightOff);
+		remoteControl.setCommand(1, kitchenLightOn, kitchenLightOff);
+ 
+		remoteControl.onButtonWasPushed(0);
+		remoteControl.offButtonWasPushed(0);
+		remoteControl.onButtonWasPushed(1);
+		remoteControl.offButtonWasPushed(1);
+	}
+}
+```
+
+## Add-On I - Undo
+
+- 작업 취소 기능을 어떻게 추가할 수 있을까?
+- 어디에 추가해야할까? → **Command**!
+    
+    ```java
+    public interface Command {
+    	public void execute();
+    	public void undo(); // NEW!
+    }
+    ```
+    
+
+- 이를 구현하는 **Light…Command**에 undo 내용을 구현
+    
+    ```java
+    public class LightOnCommand implements Command {
+    	Light light;
+    
+    	public LightOnCommand(Light light) {
+    		this.light = light;
+    	}
+     
+    	public void execute() {
+    		light.on()
+    	}
+     
+      /* `execute()`의 행동과 반대로 진행 */
+    	public void undo() {
+    		light.off();
+    	}
+    }
+    ```
+    
+
+- 이에 따라 Invoker도 수정하면:
+    
+    ```java
+    public class RemoteControlWithUndo {
+    	Command[] onCommands;
+    	Command[] offCommands;
+    	Command undoCommand; // Saves the last command
+     
+    	public RemoteControlWithUndo() {
+    		onCommands = new Command[7];
+    		offCommands = new Command[7];
+     
+    		Command noCommand = new NoCommand();
+    		for(int i=0;i<7;i++) {
+    			onCommands[i] = noCommand;
+    			offCommands[i] = noCommand;
+    		}
+    		undoCommand = noCommand;
+    	}
+    
+    	public void onButtonWasPushed(int slot) {
+    		onCommands[slot].execute();
+    		undoCommand = onCommands[slot];
+    	}
+    	 
+    	public void offButtonWasPushed(int slot) {
+    		offCommands[slot].execute();
+    		undoCommand = offCommands[slot];
+    	}
+     
+    	public void undoButtonWasPushed() {
+    		undoCommand.undo();
+    	}
+    }
+    ```
+    
+
+## Add-On II - Multitasking
+
+- 한 버튼에 여러 기능을 탑재하려면?
+- `MacroCommand`를 만들자!
+    - MacroCommand는 여러 Command를 소유
+    - `execute()` 호출 시 각 command의 `execute()`를 호출
+    - `undo()` 호출 시 각 command의 `undo()`를 호출
+    
+    ```java
+    public class MacroCommand implements Command {
+    	Command[] commands;
+     
+    	public MacroCommand(Command[] commands) {
+    		this.commands = commands;
+    	}
+     
+    	public void execute() {
+    		for (int i = 0; i < commands.length; i++) {
+    			commands[i].execute();
+    		}
+    	}
+     
+    	public void undo() {
+    		for (int i = commands.length - 1; i >= 0; i--) {
+    			commands[i].undo();
+    		}
+    	}
+    }
+    ```
+    
+# Insights ✨
+
+> Sender와 Receiver 사이의 **결합도를 낮추어**, 
+요청을 보내는 객체와 요청을 받아 처리하는 객체를 분리할 수 있음
+
+> Queue나 Stack 등의 자료구조를 활용하여 요청의 지연 실행, Undo 등의 기능을 추가할 수 있음

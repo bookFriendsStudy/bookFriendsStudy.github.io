@@ -1,0 +1,120 @@
+---
+layout: post
+title: 7. Single Responsibility Principle
+date: 2023-05-20 21:00:00 +0900
+categories: "Clean Architecture"
+author: hojunee
+---
+## Preface
+
+- 좋은 SW시스템은 clean code로부터 시작한다
+- 좋은 벽돌로 좋은 아키텍처를 정의하는 원칙 → SOLID!
+
+## SOLID
+
+- 함수와 데이터를 클래스로 배치하는 방법
+- 이들 **클래스**를 서로 결합하는 방법 (← GoF Design Pattern)
+- 여러 장점들:
+    - 변경에 유연하다
+    - 이해하기 쉽다
+    - 많은 SW시스템에 사용될 수 있는 컴포넌트의 기반이 된다
+
+### SRP
+
+단일 책임 원칙
+
+### OCP
+
+개방-폐쇄 원칙
+
+### LIP
+
+리스코프 치환 원칙
+
+### ISP
+
+인터페이스 분리 원칙
+
+### DIP
+
+의존성 역전 원칙
+
+# 7. Single Responsibility Principle
+
+- Myth → 모든 모듈이 단 하나의 일만 해야하는가? NO!
+- cf) 함수는 반드시 하나의, 단 하나의 일을 해야한다는 원칙이 있음.
+
+- 하나의 모듈은 오직 **하나의 액터**에 대해서만 책임져야 한다.
+    - 액터: 이해관계자 → 변경을 요청하는 한 명 이상의 사람들
+    - 모듈: 함수와 데이터 구조로 구성된 **응집**된 집합(→ 소스파일?)
+
+### SRP를 위반하는 사례
+
+### 1. 우발적 중복
+
+- `calculatePay()` : 회계팀에서 기능을 정의, CFO 보고를 위해 사용
+- `reportHours()` : 인사팀에서 기능을 정의하고 사용, COO 보고를 위해 사용
+- `save()` : DBA가 기능을 정의하고, CTO 보고를 위해 사용한다.
+
+이렇게 세 Actor가 결합되는 경우, 한 Actor의 행동이 다른 Actor에 영향을 끼칠 수 있다.
+
+```cpp
+float calculatePay() {
+    // ACTOR: CFO
+		reportHours();
+		...
+}
+
+float reportHours() {
+    // ACTOR: COO
+    regularHours();
+    ...
+}
+```
+
+- 만약 CFO팀에서 초과 근무를 제외한 업무 시간을 계산하는 방식을 수정하기로 하면?
+    - CFO의 Needs에 맞추어 `regularHours()` 수정. 그런데 이에 따라서 `reportHours()` 의 결과도 변경됨.
+- SRP → 서로 다른 액터가 의존하는 코드를 서로 분리하자.
+
+---
+
+### 2. 병합
+
+다음의 일이 동시에 일어난다면?
+
+Employee 테이블 스키마를 수정 → ← Employee의 메서드 `reportHours()` 변경
+
+1. 각 Actor의 개발자들이 Employee를 checkout
+2. 작업 ~~(야근)~~
+3. 변경사항을 적용 → Conflict! (공유자원 문제)
+
+서로 다른 목적으로 동일한 소스 파일을 변경하는 경우 문제가 발생
+
+→ 서로 다른 Actor를 뒷받침하는 코드를 서로 분리!
+
+---
+
+### Solution
+
+1.  데이터와 메서드를 분리
+    
+    - 아무런 메서드가 없는 간단한 EmployeeData 클래스를 생성
+        - 3개의 클래스가 이를 공유
+    - 각 클래스는 자신의 메서드에 반드시 필요한 소스코드만을 포함
+    - **세 클래스는 서로의 존재를 알아선 안됨**
+
+1. Facet Pattern(퍼사드 패턴)
+    1. EmployeeFacade를 생성
+        - 세 클래스의 객체를 생성
+            - 요청된 메서드를 소유중인 객체로 위임
+
+---
+
+### Conclusion
+
+- SRP는 메서드/클래스 수준의 원칙임
+- 이보다 상위의 두 수준에서도 다른 형태로 다시 등장
+    - 컴포넌트?
+    공통 폐쇄 원칙! Commom Closure Principle
+    - 아키텍쳐?
+    아키텍쳐의 경계(Architectural Boundary)의 생성을 책임지는 변경의 축!(Axis of Change)
